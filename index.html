@@ -71,13 +71,13 @@
     let solvedUrls = new Set(JSON.parse(localStorage.getItem('cp_solved_tasks') || '[]'));
 
     function processCSVrows(rows){
+        console.log(rows[0]);
         rawProblems=rows.map((row,index)=>{
             let urlStr=(row.Problem||"").trim();
-            let topicStr=(row.Topic||"Unknown").trim();
+            let topicStr=(row.Topic||"Unknown").trim().toLocaleLowerCase();
             let diffStr=(row.Difficulty||"Unknown").trim();
-            let urlParts=urlStr.split("/").filter(Boolean);
-            let rawTitle = urlParts[urlParts.length - 1] || "Problem Link";
-            rawTitle = decodeURIComponent(rawTitle);
+
+            let rawTitle = (row.Name||"Problem Link").trim();
 
             let tags = [topicStr];
             if (diffStr !== "Unknown" && diffStr !== "") {
@@ -136,7 +136,8 @@
         const filtered=rawProblems.filter(p=>{
             let matches=((p.title.toLocaleLowerCase().includes(query))||
             (p.topic.toLocaleLowerCase().includes(query))||
-            (p.difficulty.includes(query)));
+            (p.difficulty.toLocaleLowerCase().includes(query)))||
+            (p.url.toLocaleLowerCase().includes(query));
 
             let Tagset=new Set(p.tags);
             let matchestag=1;
