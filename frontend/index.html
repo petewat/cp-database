@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CP Problem Database</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+      .glossy {
+        border-radius: 9999px;
+        background: linear-gradient(to bottom, #34d399, #059669);
+        padding: 0.625rem 1.5rem;
+        font-weight: 600;
+        border-top: 1px solid #a7f3d0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+        transition: all 0.2s ease;
+      }
+      .glossy:hover {
+        background: linear-gradient(to bottom, #6ee7b7, #10b981);
+      }
+      .glossy:active {
+        transform: scale(0.95);
+      }
+    </style>
+</head>
+<body class="bg-[#3E8765] text-[#612F11] p-8 min-h-screen">
+
+  <div class="mb-2">
+    <h1 class="text-3xl font-bold">
+      CP Problem set
+    </h1>
+    <p class="text-1xl font-bold" id="problem-count">Processing problem data...</p>
+    <div class="bg-emerald-950/30 px-5 py-3 rounded-xl border border-emerald-800/30 backdrop-blur-sm self-start md:self-auto min-w-[200px]">
+            <div class="text-xs font-bold uppercase text-emerald-200/70 tracking-wider mb-0.5">Overall Progress</div>
+            <div class="text-lg font-bold text-white mb-1.5" id="progress-text">0/0 Solved</div>
+            <div class="w-full bg-emerald-900/60 h-2 rounded-full overflow-hidden">
+                <div id="progress-bar" class="bg-[#94664D] h-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+    </div>
+  </div>
+
+  <input
+  class="placeholder-[#94664D] p-1 mb-3"
+  type="text" 
+  id="search-input"
+  placeholder="Search problems or tags"
+  >
+
+  <div id="tags-container" class="flex flex-wrap gap-2 p-3 bg-[#94664D] rounded-xl border border-[#612F11] mb-6">
+  </div>
+
+  <div id="problem-grid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+  </div>
+
+    <div id="reset-filters" class="glossy inline-block text-white cursor-pointer select-none hidden mb-8">
+      <span>Reset Filters</span>
+    </div>
+  <div class="glossy inline-block">
+    <h1>
+      hello
+    </h1>
+  </div>
+  
+  <script>
+    let rawProblems=[];
+    let alltags = [];
+    let selectedtags=new Set();
+    let searchQuery="";
+    const BACKEND_URL = "http://localhost:8080/api";
+    let solvedUrls = new Set();
+
+    function init_profile(){
+        fetch(`${BACKEND_URL}/user/setup?username=pete`,{method:'POST'}).then(res=>res.text())
+        .then(message=>{console.log(message); loadUserCheckedProblem();}).catch(err => console.error("Error connecting to backend server:", err));
+    }
+    function loadUserCheckedProblem(){
+        fetch(`${BACKEND_URL}/problems/list?username=pete`,{method:'GET'}).then(res=>res.json()).then(urls=>{
+            solvedUrls = new Set(urls);
+            console.log(urls);
+            filterAndRenderProblems();
+            calculateProgress();
+        }).catch(err => console.error("Error loading solved problems:", err));
+    }
+
+    function processCSVrows(rows){
+        console.log(rows[0]);
+        rawProblems=rows.map((row,index)=>{
+            let urlStr=(row.Problem||"").trim();
+            let topicStr=(row.Topic||"Unknown").trim().toLocaleLowerCase();
+            let diffStr=(row.Difficulty||"Unknown").trim();
+
+            let rawTitle = (row.Name||"Problem Link").trim();
+
+            let tags = [topicStr];
+            if (diffStr !== "Unknown" && diffStr !== "") {
+                tags.push("Diff " + diffStr);
+            }
+            return {
+                id: index,
+                topic: topicStr,
+                title: rawTitle,
+                url: urlStr,
+                difficulty: diffStr,
+                tags: [...new Set(tags)]
+            };
+        }).filter(p=>p.url!=="");
+        extractTags();
+        renderTags();
+        filterAndRenderProblems();
+        calculateProgress();
+    }
+    function extractTags(){
+        const tagSet=new Set();
+        for(const p of rawProblems){
+            for(const t of p.tags)tagSet.add(t);
+        }
+        alltags=Array.from(tagSet).sort((a,b)=>{
+            if(a.startsWith("Diff")&&b.startsWith("Diff"))return a.localeCompare(b);
+            if(a.startsWith("Diff"))return 1;
+            if(b.startsWith("Diff"))return -1;
+            return a.localeCompare(b);
+        });
+    }
+    function renderTags(){
+        const container=document.getElementById('tags-container');
+        container.innerHTML='';
+
+        for(const tag of alltags){
+            const btn=document.createElement('button');
+            btn.textContent=tag;
+            if(selectedtags.has(tag)){
+                btn.className="bg-[#612F11] text-white px-3 py-1.5 rounded-lg text-xs font-bold border border-[#612F11] shadow-md transform scale-105 transition duration-150";
+            }
+            else btn.className="glossy inline-block";
+            btn.onclick=()=>{
+                if(selectedtags.has(tag))selectedtags.delete(tag);
+                else selectedtags.add(tag);
+                renderTags();
+                filterAndRenderProblems();
+                toggleResetButton();
+            };
+            container.appendChild(btn);
+        }
+    }
+    function filterAndRenderProblems(){
+        const query=searchQuery.toLocaleLowerCase().trim();
+        console.log("HEYY");
+        const filtered=rawProblems.filter(p=>{
+            let matches=((p.title.toLocaleLowerCase().includes(query))||
+            (p.topic.toLocaleLowerCase().includes(query))||
+            (p.difficulty.toLocaleLowerCase().includes(query)))||
+            (p.url.toLocaleLowerCase().includes(query));
+
+            let Tagset=new Set(p.tags);
+            let matchestag=1;
+            for(const i of selectedtags)matchestag&=(Tagset.has(i));
+            return (matchestag&&matches);
+        });
+        
+        document.getElementById('problem-count').textContent=`Showing ${filtered.length} of ${rawProblems.length} problems matching criteria`;
+
+        const grid=document.getElementById('problem-grid');
+        grid.innerHTML='';
+
+        if (filtered.length === 0) {
+            grid.innerHTML = `
+                <div class="col-span-full py-12 text-center text-emerald-100/60">
+                    <p class="font-bold text-lg">No matching tasks found.</p>
+                    <p class="text-xs">Adjust your search query or filters.</p>
+                </div>
+            `;
+            return;
+        }
+
+        for(const p of filtered){
+            const isSolved=solvedUrls.has(p.url);
+            const card=document.createElement('div');
+            card.className = `flex flex-col justify-between p-5 rounded-2xl border transition-all transform duration-200 hover:-translate-y-1 hover:shadow-lg ${
+                isSolved 
+                ? 'bg-[#94664D]/30 border-[#94664D]/50 shadow-inner' 
+                : 'bg-emerald-900/10 hover:bg-emerald-900/20 border-emerald-800/20'
+            }`;
+
+            let tagsHtml ='';
+            for(const i of p.tags){
+                const color = i.startsWith("Diff ") ? "bg-[#94664D] text-white" : "bg-emerald-950/20 text-emerald-950";
+                tagsHtml+=`<span class="text-[10px] px-2 py-0.5 rounded-md font-bold tracking-wide uppercase ${color}">${i}</span>`;
+            }
+            card.innerHTML = `
+                <div class="mb-4">
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <span class="text-xs font-bold text-[#612F11]/60 uppercase">${p.topic}</span>
+                        <button onclick="toggleSolved('${p.url}')" class="w-6 h-6 rounded-lg border flex items-center justify-center transition active:scale-90 ${
+                            isSolved 
+                            ? 'bg-[#612F11] text-white border-[#612F11]' 
+                            : 'border-[#612F11]/30 hover:border-[#612F11] text-transparent'
+                        }">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3.5" d="M5 13l4 4L19 7"></path></svg>
+                        </button>
+                    </div>
+                    <a href="${p.url}" target="_blank" class="text-lg font-bold text-white hover:text-[#612F11] leading-tight flex items-center gap-1 transition">
+                        ${p.title}
+                        <svg class="w-4 h-4 shrink-0 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </a>
+                    ${p.note && p.note !== "-" ? `<p class="text-xs italic text-emerald-100/80 mt-1">${p.note}</p>` : ''}
+                </div>
+                <div class="flex flex-wrap gap-1">
+                    ${tagsHtml}
+                </div>
+            `;
+            grid.appendChild(card);
+        }
+    }
+    function toggleSolved(url){
+        if(solvedUrls.has(url))solvedUrls.delete(url);
+        else solvedUrls.add(url);
+        fetch(`${BACKEND_URL}/problems/toggle?username=pete&problemUrl=${url}`,{method:'POST'}).then(res=>res.text())
+        .then(message=>{console.log(message); loadUserCheckedProblem();}).catch(err => console.error("Error connecting to backend server:", err));
+
+        loadUserCheckedProblem();
+        filterAndRenderProblems();
+        calculateProgress();
+    }
+    function calculateProgress(){
+        if(rawProblems.length==0)return ;
+        let solvedcount=0;
+        for(const p of rawProblems){
+            solvedcount+=(solvedUrls.has(p.url));
+        }
+        const percentage=((solvedcount)/(rawProblems.length)*100).toPrecision(3);
+        const progressbar=document.getElementById('progress-bar');
+        const progresstext=document.getElementById('progress-text');
+        progressbar.style.width=percentage+'%';
+        progresstext.textContent=`${solvedcount}/${rawProblems.length} Solved ${percentage}%`;
+    }
+    function toggleResetButton(){
+        const btn=document.getElementById('reset-filters');
+        if(searchQuery !=='' || selectedtags.size>0)btn.classList.remove('hidden');
+        else btn.classList.add('hidden');
+    }
+    document.getElementById('reset-filters').onclick = () => {
+        document.getElementById('search-input').value="";
+        searchQuery = "";
+        selectedtags.clear();
+        renderTags();
+        filterAndRenderProblems();
+        toggleResetButton();
+    };
+
+    document.getElementById('search-input').addEventListener('input',(e)=>{
+        searchQuery=e.target.value;
+        filterAndRenderProblems();
+        toggleResetButton();
+    });
+    function parseCSVcontent(csvText){
+        Papa.parse(csvText,{
+            header: true,
+            skipEmptyLines: true,
+            complete: function(results){
+                processCSVrows(results.data);
+            }
+        })
+    }
+    async function loadCSVdata(){
+        try{
+            const response =await fetch('problems.csv');
+            if(!response.ok){
+                throw new Error('problem.csv not found');
+            }
+            const csvText=await response.text();
+            parseCSVcontent(csvText);
+        }catch(err) {
+            console.error("Could not load CSV file:", err);
+            document.getElementById('problem-count').textContent = "Failed to load CSV. Open console for errors.";
+        }
+    }
+    loadCSVdata()
+    init_profile()
+  </script>
+</body>
+</html>
