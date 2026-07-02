@@ -67,8 +67,21 @@
     let alltags = [];
     let selectedtags=new Set();
     let searchQuery="";
+    const BACKEND_URL = "http://localhost:8080/api";
+    let solvedUrls = new Set();
 
-    let solvedUrls = new Set(JSON.parse(localStorage.getItem('cp_solved_tasks') || '[]'));
+    function init_profile(){
+        fetch(`${BACKEND_URL}/user/setup?username=pete`,{method:'POST'}).then(res=>res.text())
+        .then(message=>{console.log(message); loadUserCheckedProblem();}).catch(err => console.error("Error connecting to backend server:", err));
+    }
+    function loadUserCheckedProblem(){
+        fetch(`${BACKEND_URL}/problems/list?username=pete`,{method:'GET'}).then(res=>res.json()).then(urls=>{
+            solvedUrls = new Set(urls);
+            console.log(urls);
+            filterAndRenderProblems();
+            calculateProgress();
+        }).catch(err => console.error("Error loading solved problems:", err));
+    }
 
     function processCSVrows(rows){
         console.log(rows[0]);
@@ -202,8 +215,10 @@
     function toggleSolved(url){
         if(solvedUrls.has(url))solvedUrls.delete(url);
         else solvedUrls.add(url);
+        fetch(`${BACKEND_URL}/problems/toggle?username=pete&problemUrl=${url}`,{method:'POST'}).then(res=>res.text())
+        .then(message=>{console.log(message); loadUserCheckedProblem();}).catch(err => console.error("Error connecting to backend server:", err));
 
-        localStorage.setItem('cp_solved_tasks', JSON.stringify(Array.from(solvedUrls)));
+        loadUserCheckedProblem();
         filterAndRenderProblems();
         calculateProgress();
     }
@@ -213,7 +228,6 @@
         for(const p of rawProblems){
             solvedcount+=(solvedUrls.has(p.url));
         }
-
         const percentage=((solvedcount)/(rawProblems.length)*100).toPrecision(3);
         const progressbar=document.getElementById('progress-bar');
         const progresstext=document.getElementById('progress-text');
@@ -226,7 +240,7 @@
         else btn.classList.add('hidden');
     }
     document.getElementById('reset-filters').onclick = () => {
-        document.getElementById('search_input').value = "";
+        document.getElementById('search-input').value="";
         searchQuery = "";
         selectedtags.clear();
         renderTags();
@@ -262,6 +276,7 @@
         }
     }
     loadCSVdata()
+    init_profile()
   </script>
 </body>
 </html>
