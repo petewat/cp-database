@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CP Problem Database</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <style>
+      .glossy{
+        border-radius: 9999px;
+        background: linear-gradient(to bottom, #34d399, #059669);
+        padding: 0.625rem 1.5rem;
+        font-weight: 600;
+        border-top: 1px solid #a7f3d0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), inset 0 2px 4px rgba(255, 255, 255, 0.4);
+        transition: all 0.2s ease;
+      }
+      .glossy:hover {
+        background: linear-gradient(to bottom, #6ee7b7, #10b981);
+      }
+      .glossy:active {
+        transform: scale(0.95);
+      }
+    </style>
+</head>
+<body class="bg-[#3E8765] text-[#612F11] p-8 min-h-screen">
+    <div class="font-bold">Username</div>
+    <input type="text" placeholder="username" id="username_input">
+    <div class="font-bold">Password</div>
+    <input type="text" placeholder="password" id="password_input">
+    <br>
+    <button class="bg-white mt-3 p-1" id="confirm_button">Confirm</button>
+    <a class="bg-white mt-3 p-1" href="Login.html">Login</a>
+    <script>
+        const BACKEND_URL = "http://localhost:8080/api";
+        btn=document.getElementById("confirm_button");
+        btn.onclick=()=>{
+            registerUser();
+        };
+        function registerUser(){
+            const username=document.getElementById("username_input").value;
+            const password=document.getElementById("password_input").value;
+            fetch(`${BACKEND_URL}/auth/register?username=${username}&password=${password}`,{method:'POST'}).then(res=>res.text())
+            .then(message=>{console.log(message)});
+            window.location.href = "login.html";
+        }
+    </script>
+</body>
+</html>
