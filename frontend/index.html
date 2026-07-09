@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<    <meta charset="UTF-8">
+<meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CP Problem Database</title>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -67,11 +67,33 @@
     let searchQuery="";
     const BACKEND_URL = "http://localhost:8080/api";
     let solvedUrls = new Set();
-    const token = sessionStorage.getItem('accessToken');
+    let token = sessionStorage.getItem('accessToken');
+    let refreshToken = sessionStorage.getItem('refreshToken');
     if(token==null)window.location.href="login.html";
-    console.log(token);
-    
-    function loadUserCheckedProblem(){
+
+    async function tokenUpdate(){
+        try{
+            const res = await fetch(`${BACKEND_URL}/auth/refresh?refreshTokenStr=${refreshToken}&accessTokenStr=${token}`,{method:'POST'});
+            const text = await res.text();
+            console.log("YES "+token+" "+refreshToken);
+            if(!res.ok){
+                throw new Error(text);
+            }
+            if(text==="ok")return;
+            const data = JSON.parse(text);
+            token = data.accessToken;
+            refreshToken = data.refreshToken;
+            
+            sessionStorage.setItem('accessToken', token);
+            sessionStorage.setItem('refreshToken', refreshToken);
+        }catch(err){
+            console.error("Token refresh failed:", err);
+            sessionStorage.clear();
+            window.location.href="login.html";
+        }
+    }
+    async function loadUserCheckedProblem(){
+        await tokenUpdate();
         fetch(`${BACKEND_URL}/problems/list`,{method:'GET',headers:{'Authorization':`Bearer ${token}`}}).then(res=>res.json()).then(urls=>{
             solvedUrls = new Set(urls);
             console.log(urls);
@@ -212,15 +234,15 @@
             grid.appendChild(card);
         }
     }
-    function toggleSolved(url){
+    async function toggleSolved(url){
         if(solvedUrls.has(url))solvedUrls.delete(url);
         else solvedUrls.add(url);
-        console.log(token);
-        fetch(`${BACKEND_URL}/problems/toggle?problemUrl=${url}`,{method:'POST',headers:{'Authorization':`Bearer ${token}`}}).then(res=>res.text())
-        .then(message=>{console.log(message); loadUserCheckedProblem();}).catch(err => console.error("Error connecting to backend server:", err));
-
         filterAndRenderProblems();
         calculateProgress();
+
+        await tokenUpdate();
+        fetch(`${BACKEND_URL}/problems/toggle?problemUrl=${url}`,{method:'POST',headers:{'Authorization':`Bearer ${token}`}}).then(res=>res.text())
+        .then(message=>{console.log(message); loadUserCheckedProblem();}).catch(err => console.error("Error connecting to backend server:", err));
     }
     function calculateProgress(){
         if(rawProblems.length==0)return ;
@@ -276,7 +298,7 @@
         }
     }
     loadUserCheckedProblem();
-    loadCSVdata()
+    loadCSVdata();
   </script>
 </body>
 </html>

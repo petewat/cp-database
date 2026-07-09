@@ -2,8 +2,10 @@
 /Users/pete/Desktop/coding/project?/TUMJOTE!/backend/src/main/java/com/cpdatabase/backend/config/SecurityConfig.java
 /Users/pete/Desktop/coding/project?/TUMJOTE!/backend/src/main/java/com/cpdatabase/backend/controller/AuthController.java
 /Users/pete/Desktop/coding/project?/TUMJOTE!/backend/src/main/java/com/cpdatabase/backend/controller/ProblemController.java
+/Users/pete/Desktop/coding/project?/TUMJOTE!/backend/src/main/java/com/cpdatabase/backend/model/RefreshToken.java
 /Users/pete/Desktop/coding/project?/TUMJOTE!/backend/src/main/java/com/cpdatabase/backend/model/SolvedProblem.java
 /Users/pete/Desktop/coding/project?/TUMJOTE!/backend/src/main/java/com/cpdatabase/backend/model/User.java
+/Users/pete/Desktop/coding/project?/TUMJOTE!/backend/src/main/java/com/cpdatabase/backend/repository/RefreshTokenRespository.java
 /Users/pete/Desktop/coding/project?/TUMJOTE!/backend/src/main/java/com/cpdatabase/backend/repository/SolvedProblemRespository.java
 /Users/pete/Desktop/coding/project?/TUMJOTE!/backend/src/main/java/com/cpdatabase/backend/repository/UserRepository.java
 /Users/pete/Desktop/coding/project?/TUMJOTE!/backend/src/main/java/com/cpdatabase/backend/security/JwtUtil.java

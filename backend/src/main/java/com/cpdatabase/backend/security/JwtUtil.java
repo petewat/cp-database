@@ -13,9 +13,8 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtUtil{   
     private final SecretKey SECRET_KEY=Jwts.SIG.HS256.key().build();
-    private final long EXPIRATION_TIME=86400000;
 
-    public String geenrateToken(String username){
+    public String generateToken(String username, Long EXPIRATION_TIME){
         return Jwts.builder()
         .subject(username)
         .issuedAt(new Date())
@@ -32,7 +31,7 @@ public class JwtUtil{
         .getPayload()
         .getSubject();
     }
-    private boolean isTokenExpired(String token){
+    public boolean isTokenExpired(String token){
         Date expiration=Jwts.parser()
         .verifyWith(SECRET_KEY)
         .build()
