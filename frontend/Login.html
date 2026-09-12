@@ -28,12 +28,12 @@
     <div class="font-bold">Username</div>
     <input type="text" placeholder="username" id="username_input">
     <div class="font-bold">Password</div>
-    <input type="text" placeholder="password" id="password_input">
+    <input type="password" placeholder="password" id="password_input">
     <br>
     <button class="bg-white mt-3 p-1" id="confirm_button">Confirm</button>
-    <a class="bg-white mt-3 p-1" href="signin.html">Sign in</a>
+    <a class="bg-white mt-3 p-1" href="signin.html">Create an account</a>
     <script>
-        const BACKEND_URL = "http://localhost:8080/api";
+        const BACKEND_URL = "https://cp-database-px5i.onrender.com/api";
         btn=document.getElementById("confirm_button");
         btn.onclick=()=>{
             Login();
